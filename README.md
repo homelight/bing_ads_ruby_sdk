@@ -1,5 +1,6 @@
-# BingAdsRubySdk
+# BingAdsRubySdk - Homelight version
 
+This is a fork from [bing_ads_ruby_sdk](https://github.com/Effilab/bing_ads_ruby_sdk.) 
 ## Installation
 
 Add the following to your application's Gemfile:
@@ -16,105 +17,33 @@ Or install it yourself as:
 
     $ gem install bing_ads_ruby_sdk
 
-## Getting Started
+## How to use it
+This is used to renewal the bing token in homelight growth.
 
-In order to use Bing's api you need to get your api credentials from bing. From there gem handles the oauth token generation.
+Sidekiq will throw an error from BingWorker::SubmitAdgroupReport with a message like:
 
-By default, there is only one store in the gem to store the oauth token. It's a file system based store. You can create one yourself to store credentials in a database or wherever you desire. The store class must implement `read` and `write(data)` instance methods.
 
-To get your token, run:
-```ruby
+    Signet::AuthorizationError: Authorization failed. Server message: {"error":"invalid_grant","error_description":"AADSTS70000: The user could not be authenticated as the grant is expired. The user must sign in again.\r\nTrace ID: b92b9a0e-93f9-4aea-82b2-3015c0a72d00\r\nCorrelation ID: b5357629-ff0c-4cdd-a638-ce66a1d0115d\r\nTimestamp: 2020-09-07 13:30:22Z","error_codes":[70000],"timestamp":"2020-09-07 13:30:22Z","trace_id":"b92b9a0e-93f9-4aea-82b2-3015c0a72d00","correlation_id":"b5357629-ff0c-4cdd-a638-ce66a1d0115d","error_u...
+
+
+You'll need to follow the instructions from this repo: https://github.com/Effilab/bing_ads_ruby_sdk
+
+and run 
+
+```
 rake bing_token:get[my_token.json,your_dev_token,your_bing_client_id]
-
 ```
 
+Except when this was built, the gem didn't take in the client secret and will not work, that's why we forked it. 
 
-Then to use the api:
-```ruby
-store = ::BingAdsRubySdk::OAuth2::FsStore.new('my_token.json')
-api = BingAdsRubySdk::Api.new(
-  oauth_store: store,
-  developer_token: 'your_dev_token',
-  client_id: 'your_bing_client_id'
-)
-api.customer_management.signup_customer(params)
-  filter: 'name',
-  top_n: 1
-)
-
-# once you have your bing customer and account ids:
-api.set_customer(customer_id: customer_id, account_id: account_id )
-
-api.campaign_management.get_campaigns_by_account_id(account_id: account_id)
-```
-
-You'll see services like `customer_management` implement some methods, but not all the ones available in the API.
-
-The methods implemented contain additional code to ease data manipulation but any endpoint can be reached using `call` on a service.
-
-```ruby
-@cm.call(:find_accounts_or_customers_info, filter: 'name', top_n: 1)
-# => { account_info_with_customer_data: { account_info_with_customer_data: [{ customer_id: "250364751", :
-
-# VS method dedicated to extract data
-
-@cm.find_accounts_or_customers_info(filter: 'name', top_n: 1)
-# => [{ customer_id: "250364731" ...
+And run this command from within the directory:
 
 ```
-
-
-## Configure the gem
-```ruby
-BingAdsRubySdk.configure do |conf|
-  conf.log = true
-  conf.logger.level = Logger::DEBUG
-  conf.pretty_print_xml = true
-  # to filter sensitive data before logging
-  conf.filters = ["AuthenticationToken", "DeveloperToken"]
-  
-  # Optionally allow ActiveSupport::Notifications to be emitted by Excon.
-  # These notifications can then be sent on to your profiling system
-  # conf.instrumentor = ActiveSupport::Notifications 
-end
+rake bing_token:get[my_token.json,your_dev_token,your_bing_client_id,your_bing_secret]
 ```
 
-## Development
-You can run `bin/console` for an interactive prompt that will allow you to experiment.
+(You can find these credentials from Heroku Env variables in the HomeLight Growth repo or through a Microsoft Ads account.)
 
-To release a new version, update the version number in `version.rb`, and then run
-`bundle exec rake release`, which will create a git tag for the version, push git
-commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+Follow rake task instructions and then copy the my_token.json file into the bing_token.json file in homelight growth and deploy these changes. Don't forget to rerun the failed Sidekiq jobs and this issue should be resolved.
 
-### Updating to a new Bing API version
-Bing regularly releases new versions of the API and removes support for old versions.
-When you want to support a new version of the API, here are some of the things that
-need to be changed:
-* Go to https://docs.microsoft.com/en-us/bingads/guides/migration-guide to see what has changed
-* Set the default SDK version in lib/bing_ads_ruby_sdk/version.rb
-
-### Specs
-After checking out the repo, run `bin/setup` to install dependencies. Then, run 
-`rake spec` to run unit tests. 
-
-If you want to run the integration tests they are in the `spec/examples/` 
-folders. Remember that these will create real accounts and entities in Microsoft
-Advertising so take care to check your account spending settings.
-
-Here's how to run the tests:
-* Make sure you have the token as described above
-* Put your Client ID, Developer Token, and Parent Customer ID in the methods 
-    with the same names in `spec/examples/examples.rb`
-* Run the specs in order, for example:
-  * `bundle exec rspec spec/examples/1_...`, at the end of the spec there will be
-    a message at the end about copying an ID into `spec/examples/examples.rb`
-  * `bundle exec rspec spec/examples/2_...` 
-  * keep repeating until you have run all the specs in `spec/examples`
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/Effilab/bing_ads_ruby_sdk.
-
-## License
-
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+It seems we need to reauthenticate every year. Last reauthentication was 9/8/21.
